@@ -6,11 +6,20 @@ import numpy as np
 
 
 class Game:
+    # prema pravilima backgammon-a definisemo osnovne elemente igre
+
+    # svaka partija uvek pocinje istom postavkom:
+    # 'pozicija na tabli' - 'broj zetona' - 'igrac kome pripadaju zetoni'
     LAYOUT = "0-2-o,5-5-x,7-3-x,11-5-o,12-5-x,16-3-o,18-5-o,23-2-x"
+    # postoji ukupno 24 polja table koja ce biti indeksirana 0-23
     NUMCOLS = 24
+    # tabla ima 4 kvadranta sa po 6 polja
     QUAD = 6
+    # konstanta koja se koristi kod poteza kada se zeton "skida" sa table
     OFF = 'off'
+    # konstanta koja se koristi kod poteza kada se zeton ponovo ubacuje u igru
     ON = 'on'
+    # igra definise 2 igraca ('crni' i 'crveni', 'crni' i 'beli', 'x' i 'o', ...]
     TOKENS = ['x', 'o']
 
     def __init__(self, layout=LAYOUT, grid=None, off_pieces=None, bar_pieces=None, num_pieces=None, players=None):
@@ -64,13 +73,19 @@ class Game:
         # print("extract_features returns: " + str(np.array(features).reshape(1, -1)))
         return np.array(features).reshape(1, -1)
 
+    # bacanje kockice
+    # igrac u svom potezu baca dve kockice
     def roll_dice(self):
         return (random.randint(1, self.die), random.randint(1, self.die))
 
+
     def play(self, players, draw=False):
+
+        # igra pocinje tako sto svaki igrac baci po jednu kockicu
         x_roll = random.randint(1, self.die)
         o_roll = random.randint(1, self.die)
 
+        # u slucaju da oba igraca dobiju isti broj, bacanje se ponavlja
         while x_roll == o_roll:
             print("Player x rolled: " + str(x_roll))
             print("Player o rolled: " + str(o_roll) + "\n")
@@ -80,6 +95,8 @@ class Game:
         print("---> Player x rolled: " + str(x_roll))
         print("---> Player o rolled: " + str(o_roll))
 
+        # igrac koji je dobio veci broj igra prvi
+        # koristeci kockice koje su bacene (jednu je bacio 'x' a drugu 'o')
         roll = (x_roll, o_roll)
         self.draw()
 
@@ -97,11 +114,14 @@ class Game:
             player_num = 0
 
         # player_num = random.randint(0, 1)
+
         while not self.is_over():
             self.next_step(players[player_num], player_num, draw=draw)
             player_num = (player_num + 1) % 2
         return self.winner()
 
+
+    # funkcija baca kockice za igraca ciji je red i igra potez u skladu sa kockicama
     def next_step(self, player, player_num, draw=False):
         roll = self.roll_dice()
 
@@ -110,14 +130,19 @@ class Game:
 
         self.take_turn(player, roll, draw=draw)
 
+
     def take_turn(self, player, roll, draw=False):
+
         if draw:
             print("---> Player {%s} rolled [%d] [%d]" % (player.player, roll[0], roll[1]))
             time.sleep(1)
 
+        # svi moguci potezi za datog igraca uz dato bacanje kockica
         moves = self.get_actions(roll, player.player, nodups=True)
+        # najbolji moguci potez
         move = player.get_action(roll, moves, self) if moves else None
 
+        # ako postoji potez koji moze da se odigra, on ce biti odigran
         if move:
             self.take_action(move, player.player)
 
@@ -129,6 +154,7 @@ class Game:
         return Game(None, self.grid, self.off_pieces,
                     self.bar_pieces, self.num_pieces, self.players)
 
+    # odigraj potez action za igraca token
     def take_action(self, action, token):
         """
         Makes given move for player, assumes move is valid,
@@ -137,20 +163,29 @@ class Game:
         # print("ATELIST: " + str(ateList) + "\n") --> # ATELIST: [0, 0, 0, 0]
         ateList = [0] * 4
         for i, (s, e) in enumerate(action):
+            # ako je potez (Game.ON, i) znaci da ponovo ubacujemo zeton u igru
+            # samim tim skidamo zeton sa "sipke" tj. bar-a
             if s == Game.ON:
                 piece = self.bar_pieces[token].pop()
+            # ako je zeton vec u igri, skidamo ga sa trenutne pozicije i prebacujemo na novu
             else:
                 piece = self.grid[s].pop()
+            # ako zeton skidamo sa table, dodajemo ga u listu off_pieces
             if e == Game.OFF:
                 self.off_pieces[token].append(piece)
                 continue
+            # ukoliko zeton pomeramo na polje odrediste\cilj gde se nalazi jedan protivnicki zeton,
+            # protivnicki zeton izbacujemo iz igre i smestamo na bar
             if len(self.grid[e]) > 0 and self.grid[e][0] != token:
                 bar_piece = self.grid[e].pop()
                 self.bar_pieces[bar_piece].append(bar_piece)
                 ateList[i] = 1
+            # zeton koji pomeramo smestamo na odrediste
             self.grid[e].append(piece)
         return ateList
 
+    # pomocna funkcija koja se koristi prilikom odredjivanja najboljeg poteza
+    # ponistavanje odigranog poteza i vracanje u prethodno stanje
     def undo_action(self, action, player, ateList):
         """
         Reverses given move for player, assumes move is valid,
@@ -169,10 +204,9 @@ class Game:
             else:
                 self.grid[s].append(piece)
 
+    # funkcija koja pronalazi sve moguce poteze za dati roll i igraca player
     def get_actions(self, roll, player, nodups=False):
-        """
-        Get set of all possible move tuples
-        """
+
         moves = set()
         if nodups:
             start = 0
@@ -180,9 +214,10 @@ class Game:
             start = None
 
         r1, r2 = roll
+        # u slucaju da je igrac dobio iste vrednosti na obe kockice, ima pravo na 4 poteza
         if r1 == r2:  # doubles
             i = 4
-            # keep trying until we find some moves
+
             # naci sve poteze za roll npr. 4, 4, 4, 4
             while not moves and i > 0:
                 self.find_moves(tuple([r1] * i), player, (), moves, start)
@@ -191,27 +226,31 @@ class Game:
             # naci za roll (r1, r2)
             self.find_moves(roll, player, (), moves, start)
             self.find_moves((r2, r1), player, (), moves, start)
-            # has no moves, try moving only one piece
+            # ako ne postoje potezi, pokusaj da pomeris samo 1 zeton
             if not moves:
                 for r in roll:
                     self.find_moves((r,), player, (), moves, start)
 
         return moves
 
+    # funkcija koja pronalazi jedan po jedan validan potez za dati roll rs, i igraca player
     def find_moves(self, rs, player, move, moves, start=None):
         if len(rs) == 0:
             moves.add(move)
             return
         r, rs = rs[0], rs[1:]
 
+        # kako se 2 igraca po tabli krecu u suprotnim smerovima ( 'o': 0-23 , 'x': 23-0)
+        # potrebno je razdvojiti kreiranje poteza
         if player == "o":
-            # see if we can remove a piece from the bar
+            # da li mozemo da uklonimo zeton sa bar-a
             if self.bar_pieces[player]:
+                # ako mozemo da ubacimo zeton u igru
                 if self.can_onboard(player, r):
                     # skidamo piece sa bar-a
                     piece = self.bar_pieces[player].pop()
                     bar_piece = None
-                    # izbacujemo protivnika
+                    # izbacujemo protivnika ako su ispunjeni uslovi
                     if len(self.grid[r - 1]) == 1 and self.grid[r - 1][-1] != player:
                         bar_piece = self.grid[r - 1].pop()
 
@@ -219,41 +258,54 @@ class Game:
                     self.grid[r - 1].append(piece)
 
                     self.find_moves(rs, player, move + ((Game.ON, r - 1),), moves, start)
+
+                    # uklanjamo nas zeton\piece posto ovo nije konacan potez
                     self.grid[r - 1].pop()
+                    # dodajemo nas zeton u bar_piece[player]
                     self.bar_pieces[player].append(piece)
+                    # ako smo protivnika izbacili sa table, vracamo ga na njegovo mesto
                     if bar_piece:
                         self.grid[r - 1].append(bar_piece)
                 return
 
-            # otherwise check each grid location for valid move using r
+            # ako su svi zetoni u igri, proveri sve moguce validne poteze datim roll-om r
+
             offboarding = self.can_offboard(player)
 
+            # za svako polje proveravamo da li postoji validan potez
             for i in range(len(self.grid)):
                 if start is not None:
                     start = i
                 if self.is_valid_move(i, i + r, player):
-
+                    # skidamo zeton sa trenutne pozicije
                     piece = self.grid[i].pop()
                     bar_piece = None
+                    # da li mozemo da izbacimo protivnika
                     if len(self.grid[i + r]) == 1 and self.grid[i + r][-1] != player:
                         bar_piece = self.grid[i + r].pop()
+                    # stavljamo zeton na novu poziciju
                     self.grid[i + r].append(piece)
                     self.find_moves(rs, player, move + ((i, i + r),), moves, start)
+                    # ponistavamo nas potez
                     self.grid[i + r].pop()
                     self.grid[i].append(piece)
                     if bar_piece:
                         self.grid[i + r].append(bar_piece)
 
-                # If we can't move on the board can we take the piece off?
+                # da li mozemo da skinemo zeton sa table
                 if offboarding and self.remove_piece(player, i, r):
+                    # skidamo zeton sa table
                     piece = self.grid[i].pop()
+                    # dodajemo ga u listu off_pieces igraca player
                     self.off_pieces[player].append(piece)
+                    # trazimo naredni potez
                     self.find_moves(rs, player, move + ((i, Game.OFF),), moves, start)
+                    # ponistavamo akcije
                     self.off_pieces[player].pop()
                     self.grid[i].append(piece)
         # igrac je 'x'
         else:
-            # see if we can remove a piece from the bar
+            # da li mozemo da uklonimo zeton sa bar-a
             if self.bar_pieces[player]:
                 if self.can_onboard(player, r):
                     # skidamo piece sa bar-a
@@ -273,7 +325,6 @@ class Game:
                         self.grid[Game.NUMCOLS - r].append(bar_piece)
                 return
 
-            # otherwise check each grid location for valid move using r
             offboarding = self.can_offboard(player)
 
             for i in range(len(self.grid)):
@@ -292,7 +343,7 @@ class Game:
                     if bar_piece:
                         self.grid[i - r].append(bar_piece)
 
-                # If we can't move on the board can we take the piece off?
+                # da li mozemo da uklonimo zeton sa bar-a
                 if offboarding and self.remove_piece(player, i, r):
                     piece = self.grid[i].pop()
                     self.off_pieces[player].append(piece)
@@ -354,6 +405,8 @@ class Game:
                 return True
         return False
 
+    # da li igrac moze da uklanja zetone iz igre
+    # postoji razlika za igraca 'x' i 'o' zbog smera kretanja po tabli
     def can_offboard(self, player):
         # count = 0
         # for i in range(Game.NUMCOLS - self.die, Game.NUMCOLS):
@@ -381,11 +434,10 @@ class Game:
                 return True
             return False
 
+    # da li igrac moze da ubaci zeton u igru
+    # postoji razlika za igraca 'x' i 'o' zbog smera kretanja po tabli
     def can_onboard(self, player, r):
-        """
-        Can we take a players piece on the bar to a position
-        on the grid given by roll-1?
-        """
+
         if player == "o":
             if len(self.grid[r - 1]) <= 1 or self.grid[r - 1][0] == player:
                 # if player=="o":
@@ -400,12 +452,19 @@ class Game:
             else:
                 return False
 
+    # da li sa date pozicije start i bacanjem kockice r mozemo da uklonimo zeton sa table
+    # pretpostavka je da su ispunjeni potrebni uslovi za uklanjanje zetona
+    # provera uslova se vrsi na drugom mestu u kodu
+    # postoji razlika za igraca 'x' i 'o'
+
+    # prema pravilima igre, igrac moze da ukloni zeton(piece) ako su svi zetoni u poslednjem kvadrantu i nijedan zeton
+    # se ne nalazi van igre (na bar-u)
+    # takodje, dodatno pravilo je da je moguce skloniti zeton sa table sa roll-om vecim od potrebnog ako se
+    # na pozicijama dalje od kraja kvadranta ne nalaze zetoni tog igraca
+    # npr. igrac 'o' ima zetone na pozicijama 21, 22, 23 a nema ih na pozicijama 18, 19 i 20
+    # tada igrac 'o' moze ukloniti zeton na poziciji 21 ako bacanjem kockice dobije bilo koji od brojeva 3, 4, 5 ili 6
     def remove_piece(self, player, start, r):
-        """
-        Can we remove a piece from location start with roll r ?
-        In this function we assume we are cool to offboard,
-        i.e. no pieces on the bar and all are in the home quadrant.
-        """
+
         # za 'o'
         if player == "o":
             isLast = False
@@ -453,17 +512,23 @@ class Game:
                     return True
             return False
 
+    # da li je zeljeni potez validan
     def is_valid_move(self, start, end, token):
-
+        # ako na start lokaciji igrac token ima zetone
         if len(self.grid[start]) > 0 and self.grid[start][0] == token:
+            # prekoracenje ili potkoracenje indeksa
             if end < 0 or end >= len(self.grid):
                 return False
+            # na poziciji end ima <= 1 zeton (bilo od igraca token bilo od protivnika)
             if len(self.grid[end]) <= 1:
                 return True
+            # igrac token ima vise od jednog zetona na poziciji end
             if len(self.grid[end]) > 1 and self.grid[end][-1] == token:
                 return True
+        # protivnik ima vise od jednog zetona na poziciji end
         return False
 
+    # izgled jedne kolone u terminalu
     def draw_col(self, i, col):
         print("-----------------------"),
         print("COL: %d", col)
@@ -479,6 +544,7 @@ class Game:
         else:
             print(" _ "),
 
+    # funkcija prikaza trenutnog stanja igre
     def draw(self):
 
         # os.system('clear')
@@ -522,6 +588,8 @@ class Game:
 
         # print("REDEFINED DRAW:")
         # REDEFINED DRAW
+
+
         print("-------------------------------------")
         for i in range(len(self.grid)):
             print(str(i) + " || ", end=" ")
