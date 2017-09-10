@@ -7,6 +7,7 @@ class TDAgent(object):
         self.model = model
         self.name = 'TD-Gammon'
 
+    # funkcija vraca najbolji od svih mogucih poteza
     def get_action(self, roll, actions, game):
         """
         Return best action according to self.evaluationFunction,
@@ -15,6 +16,9 @@ class TDAgent(object):
         v_best = 0
         a_best = None
 
+        # za svaki potez/akciju:
+        # odigra se potez nakon cega se racunaju atributi na osnovu kojih se ocenjuje trenutni potez
+        # najbolji potez je onaj sa najboljom ocenom
         for a in actions:
             ateList = game.take_action(a, self.player)
             features = game.extract_features(game.opponent(self.player))

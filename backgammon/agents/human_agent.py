@@ -1,5 +1,6 @@
 from ..game import Game
 
+# igrac je covek
 class HumanAgent(object):
     def __init__(self, player):
         self.player = player
@@ -10,9 +11,13 @@ class HumanAgent(object):
             input("-> No moves for you...(hit enter)")
             return None
 
+        # covek sam unosi potez koji zeli da odigra
         while True:
             while True:
-                mv1 = input('\n -> Please enter a move "<location start>,<location end>" ("%s" for on the board, "%s" for off the board): ' % (Game.ON, Game.OFF))
+                mv1 = input('\n -> Please enter a move "<location start>,<location end>" [e.g. "3,4"] ("%s" for on the board, "%s" for off the board): ' % (Game.ON, Game.OFF))
+                if mv1 == '':
+                    mv1 = None
+                    break
                 mv1 = self.get_formatted_move(mv1)
                 if not mv1:
                     print('\n!!! Bad format enter e.g. "3,4"')
@@ -33,10 +38,15 @@ class HumanAgent(object):
                     break
 
             r1, r2 = roll
+
+            # ukoliko su vrednosti dobijene na dvema kockicama jednake, igrac ima pravo na 2 dodatna poteza
+            # koje treba da unese
             if r1==r2:
                 while True:
-                    mv3 = input(
-                        '\n -> Please enter a third move (enter to skip): ')
+                    mv3 = input('\n -> Please enter a third move (enter to skip): ')
+                    if mv3 == '':
+                        mv3 = None
+                        break
                     mv3 = self.get_formatted_move(mv3)
                     if not mv3:
                         print('\n!!! Bad format enter e.g. "3,4"')
@@ -56,6 +66,8 @@ class HumanAgent(object):
                         print("mv4: (" + str(mv4[0]) + ", " + str(mv4[1]) + ")")
                         break
 
+            # pravimo potez na osnovu kockica i unetih parametara
+
             if r1==r2:
                 if mv1:
                     if mv2:
@@ -69,10 +81,13 @@ class HumanAgent(object):
                     else:
                         move = (mv1, )
             else:
-                if mv2:
-                    move = (mv1, mv2)
+                if mv1:
+                    if mv2:
+                        move = (mv1, mv2)
+                    else:
+                        move = (mv1,)
                 else:
-                    move = (mv1,)
+                    move = ()
 
             #if mv2:
             #    move = (mv1, mv2)
@@ -80,16 +95,18 @@ class HumanAgent(object):
             #    move = (mv1,)
 
 
-
+            # ukoliko imamo validan potez, on ce biti vracen kao rezultat funkcije, a nakon toga odigran
             if move in moves:
                 return move
             elif move[::-1] in moves:
                 move = move[::-1]
                 return move
+            # neispavan potez
             else:
                 #print move
                 print("****Move: " + str(move))
 
+                # stampanje svih mogucih validnih poteza
                 for move in moves:
                     #print("  --> move: [ (" + str(move[0]) + ", " + str(move[1]) + ") ]")
                     print("  --> move: " + str(move))
@@ -97,6 +114,7 @@ class HumanAgent(object):
                 print("\n!!! You can't play that move")
 
         return None
+
 
     def get_formatted_move(self, move):
         try:
