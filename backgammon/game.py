@@ -3,7 +3,7 @@ import copy
 import time
 import random
 import numpy as np
-
+#import backgammon.agents.human_agent as human_agent
 
 class Game:
     # prema pravilima backgammon-a definisemo osnovne elemente igre
@@ -182,6 +182,7 @@ class Game:
                 ateList[i] = 1
             # zeton koji pomeramo smestamo na odrediste
             self.grid[e].append(piece)
+
         return ateList
 
     # pomocna funkcija koja se koristi prilikom odredjivanja najboljeg poteza
