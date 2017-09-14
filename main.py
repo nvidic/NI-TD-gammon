@@ -31,6 +31,10 @@ if __name__ == '__main__':
         if FLAGS.test:
             model.test(episodes=1000)
         elif FLAGS.play:
-            model.play()
+            winner = model.play()
+            # pobedio racunar
+            if winner == 0:
+                print("The game is over! THE COMPUTER WON! Better luck next time!\n")
+            # ako je pobedio covek, to je vec provereno u human_agent.py :)
         else:
             model.train()
